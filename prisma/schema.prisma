@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+enum OrderStatus {
+  NEW
+  PROCESSING
+  SHIPPED
+  CANCELLED
+}
+
+enum Currency {
+  EUR
+  USD
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  role      UserRole @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  company   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("customers")
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNo       String      @unique
+  customerId    String
+  status        OrderStatus @default(NEW)
+  amountDecimal Decimal     @db.Decimal(10, 2)
+  currency      Currency    @default(EUR)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tags     OrderTag[]
+
+  @@map("orders")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  orders OrderTag[]
+
+  @@map("tags")
+}
+
+model OrderTag {
+  orderId String
+  tagId   String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([orderId, tagId])
+  @@map("order_tags")
+}
