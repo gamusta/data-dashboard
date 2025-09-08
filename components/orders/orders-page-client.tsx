@@ -29,8 +29,8 @@ export function OrdersPageClient({ user, searchParams }: OrdersPageClientProps) 
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
 
-  // Convert searchParams to URL search params
-  const currentFilters = useMemo(() => {
+  // Convert searchParams to URL search params - memoize with stable dependencies
+  const currentFiltersString = useMemo(() => {
     const params = new URLSearchParams()
     Object.entries(searchParams).forEach(([key, value]) => {
       if (value) {
@@ -41,13 +41,13 @@ export function OrdersPageClient({ user, searchParams }: OrdersPageClientProps) 
         }
       }
     })
-    return params
+    return params.toString()
   }, [searchParams])
 
   const fetchOrders = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/orders?${currentFilters.toString()}`)
+      const response = await fetch(`/api/orders?${currentFiltersString}`)
       if (!response.ok) throw new Error('Failed to fetch orders')
       
       const data: PaginatedResponse<OrderWithCustomer> = await response.json()
@@ -59,14 +59,14 @@ export function OrdersPageClient({ user, searchParams }: OrdersPageClientProps) 
     } finally {
       setIsLoading(false)
     }
-  }, [currentFilters])
+  }, [currentFiltersString])
 
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
 
   const handleFiltersChange = useCallback((newFilters: Record<string, any>) => {
-    const params = new URLSearchParams(urlSearchParams.toString())
+    const params = new URLSearchParams(searchParams as any)
     
     // Reset page to 1 when filters change
     params.set('page', '1')
@@ -83,25 +83,25 @@ export function OrdersPageClient({ user, searchParams }: OrdersPageClientProps) 
     })
 
     router.push(`/dashboard/orders?${params.toString()}`)
-  }, [router, urlSearchParams])
+  }, [router, searchParams])
 
   const handlePageChange = useCallback((page: number) => {
-    const params = new URLSearchParams(urlSearchParams.toString())
+    const params = new URLSearchParams(searchParams as any)
     params.set('page', page.toString())
     router.push(`/dashboard/orders?${params.toString()}`)
-  }, [router, urlSearchParams])
+  }, [router, searchParams])
 
   const handleSortChange = useCallback((sort: string) => {
-    const params = new URLSearchParams(urlSearchParams.toString())
+    const params = new URLSearchParams(searchParams as any)
     params.set('sort', sort)
     params.set('page', '1') // Reset to first page
     router.push(`/dashboard/orders?${params.toString()}`)
-  }, [router, urlSearchParams])
+  }, [router, searchParams])
 
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const response = await fetch(`/api/orders/export?${currentFilters.toString()}`)
+      const response = await fetch(`/api/orders/export?${currentFiltersString}`)
       if (!response.ok) throw new Error('Export failed')
       
       const blob = await response.blob()
